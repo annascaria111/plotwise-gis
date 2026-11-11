@@ -1,0 +1,174 @@
+{
+  "type": "FeatureCollection",
+  "name": "plotwise_sample_plots",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+  "plot_id": "PW-001",
+  "plot_name": "Plot 001",
+  "land_use": "Residential",
+  "status": "Verified",
+  "area_label": "Sample only",
+  "owner_name": "Anu Thomas",
+  "survey_number": "125/1",
+  "land_type": "Dry Land",
+  "village": "Sample Village",
+  "district": "Sample District"
+},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              76.0,
+              11.7
+            ],
+            [
+              76.001,
+              11.7
+            ],
+            [
+              76.001,
+              11.701
+            ],
+            [
+              76.0,
+              11.701
+            ],
+            [
+              76.0,
+              11.7
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+  "plot_id": "PW-002",
+  "plot_name": "Plot 002",
+  "land_use": "Residential",
+  "status": "Draft",
+  "area_label": "Sample only",
+  "owner_name": "Arun Kumar",
+  "survey_number": "125/2",
+  "land_type": "Dry Land",
+  "village": "Sample Village",
+  "district": "Sample District"
+},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              76.001,
+              11.7
+            ],
+            [
+              76.002,
+              11.7
+            ],
+            [
+              76.002,
+              11.701
+            ],
+            [
+              76.001,
+              11.701
+            ],
+            [
+              76.001,
+              11.7
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+  "plot_id": "PW-003",
+  "plot_name": "Plot 003",
+  "land_use": "Commercial",
+  "status": "Verified",
+  "area_label": "Sample only",
+  "owner_name": "Meera Joseph",
+  "survey_number": "126/1",
+  "land_type": "Commercial Land",
+  "village": "Sample Village",
+  "district": "Sample District"
+},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              76.0,
+              11.701
+            ],
+            [
+              76.001,
+              11.701
+            ],
+            [
+              76.001,
+              11.702
+            ],
+            [
+              76.0,
+              11.702
+            ],
+            [
+              76.0,
+              11.701
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+  "plot_id": "PW-004",
+  "plot_name": "Plot 004",
+  "land_use": "Open Space",
+  "status": "Draft",
+  "area_label": "Sample only",
+  "owner_name": "Thomas Mathew",
+  "survey_number": "126/2",
+  "land_type": "Public Land",
+  "village": "Sample Village",
+  "district": "Sample District"
+},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              76.001,
+              11.701
+            ],
+            [
+              76.002,
+              11.701
+            ],
+            [
+              76.002,
+              11.702
+            ],
+            [
+              76.001,
+              11.702
+            ],
+            [
+              76.001,
+              11.701
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

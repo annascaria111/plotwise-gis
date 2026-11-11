@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PlotWise | GIS Plot Explorer</title>
+  <link href="https://unpkg.com/maplibre-gl@^5.6.0/dist/maplibre-gl.css" rel="stylesheet">
+  <style>
+    :root{--ink:#18221f;--muted:#69756f;--line:#e3e9e5;--green:#176b4d;--mint:#e9f5ef;--paper:#f7f9f7}
+    *{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif;color:var(--ink);background:var(--paper)}
+    header{height:70px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 26px}
+    .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.03em;font-size:20px}.brand-mark{background:var(--green);color:white;border-radius:10px;width:34px;height:34px;display:grid;place-items:center}
+    .tag{font-size:12px;color:var(--green);background:var(--mint);padding:7px 10px;border-radius:99px;font-weight:700}
+    main{max-width:1440px;margin:auto;padding:26px;display:grid;grid-template-columns:340px 1fr;gap:20px}
+    .intro h1{font-size:30px;line-height:1.1;letter-spacing:-.04em;margin:0 0 10px}.intro p{color:var(--muted);font-size:14px;line-height:1.6;margin:0 0 20px}
+    .panel,.map-wrap{background:white;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+    .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}.stat{border:1px solid var(--line);border-radius:12px;padding:14px}.stat small{display:block;color:var(--muted);font-size:12px}.stat strong{display:block;font-size:24px;margin-top:5px}
+    .panel-head{padding:16px;border-bottom:1px solid var(--line);font-weight:750;display:flex;align-items:center;justify-content:space-between}
+    .filters{padding:14px;border-bottom:1px solid var(--line)}input,select{width:100%;padding:11px 12px;border:1px solid #dce4df;border-radius:9px;background:#fff;font:inherit;font-size:13px;color:var(--ink);margin-bottom:9px;outline-color:var(--green)}
+    .plot-list{max-height:390px;overflow:auto}.plot{padding:14px 16px;border-bottom:1px solid #edf1ee;cursor:pointer}.plot:hover,.plot.active{background:#f0f8f3}.plot-top{display:flex;justify-content:space-between;gap:8px;align-items:center}.plot-id{font-weight:750;font-size:13px}.pill{font-size:10px;padding:4px 7px;border-radius:99px;background:#edf2ee;color:#47544d}.plot small{color:var(--muted);display:block;margin-top:5px}
+    .map-wrap{position:relative;min-height:650px}.map-top{position:absolute;z-index:2;left:14px;top:14px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 13px;font-size:12px;box-shadow:0 3px 14px #122a1910}.map-top strong{display:block;margin-bottom:3px}.map-top span{color:var(--muted)}
+    #map{height:650px;width:100%}.detail{padding:16px;border-top:1px solid var(--line);background:#fff}.detail h3{margin:0 0 12px;font-size:15px}.detail-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.detail-item small{display:block;color:var(--muted);font-size:11px}.detail-item strong{font-size:13px;display:block;margin-top:4px}
+    footer{max-width:1440px;margin:0 auto;padding:0 26px 24px;color:var(--muted);font-size:12px;line-height:1.6}
+    @media(max-width:850px){main{grid-template-columns:1fr;padding:14px}.map-wrap{min-height:430px}#map{height:430px}.plot-list{max-height:240px}header{padding:0 16px}.intro h1{font-size:26px}.detail-grid{grid-template-columns:1fr 1fr}footer{padding:0 14px 20px}}
+  /* Professional Plot Details Layout */
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.detail-item {
+  background: #f8fafc;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  min-width: 0;
+}
+
+.detail-item small {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+  margin-bottom: 7px;
+}
+
+.detail-item strong {
+  display: block;
+  color: #0f172a;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+/* Responsive layout */
+
+@media (max-width: 900px) {
+  .detail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 500px) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.nearby-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  margin: 10px 0;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.nearby-item:hover {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  transform: translateY(-2px);
+}
+
+.nearby-item strong {
+  color: #1e293b;
+  font-size: 14px;
+}
+
+.nearby-item span {
+  color: #64748b;
+  font-size: 13px;
+}
+/* PlotWise Dashboard UI Upgrade */
+
+body {
+  background: #f3f6fb;
+  color: #17243b;
+}
+
+header {
+  background: #10233f;
+  color: white;
+  padding: 18px 28px;
+  border-bottom: 3px solid #38bfa6;
+}
+
+.brand {
+  color: #ffffff;
+  font-size: 21px;
+  font-weight: 800;
+}
+
+.intro h1 {
+  color: #10233f;
+  font-size: 32px;
+  letter-spacing: -0.8px;
+}
+
+.stat,
+.panel,
+.detail-item {
+  background: #ffffff;
+  border: 1px solid #e2e8f2;
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(20, 40, 70, 0.05);
+}
+
+.stat strong {
+  color: #176b8c;
+  font-size: 30px;
+}
+
+.panel-head {
+  background: #f7f9fc;
+  color: #10233f;
+}
+
+.plot:hover {
+  background: #eaf5f8;
+  cursor: pointer;
+}
+
+.plot.active {
+  background: #dff3ef;
+  border-left: 4px solid #16a085;
+}
+
+.detail-item strong {
+  color: #10233f;
+}
+
+.nearby-item {
+  transition: background 0.2s, transform 0.2s;
+}
+
+.nearby-item:hover {
+  background: #e8f5f2;
+  transform: translateX(3px);
+  cursor: pointer;
+}
+
+  </style>
+</head>
+<body>
+<header>
+  <div class="brand"><span class="brand-mark">P</span> PlotWise <span style="font-weight:500;color:#7b8780;font-size:13px">GIS Explorer</span></div>
+  <span class="tag">DEMO DATA · NOT SURVEYED</span>
+</header>
+<main>
+  <section>
+    <div class="intro">
+      <h1>Land plots, made clearer.</h1>
+      <p>A lightweight GIS demo for exploring plot boundaries and attributes. Select a plot to inspect its details.</p>
+    </div>
+    <div class="stats">
+  <div class="stat">
+    <small>Total Plots</small>
+    <strong id="total">4</strong>
+  </div>
+
+  <div class="stat">
+    <small>Verified</small>
+    <strong id="verified">2</strong>
+  </div>
+
+  <div class="stat">
+    <small>Draft</small>
+    <strong id="draft">2</strong>
+  </div>
+
+  <div class="stat">
+    <small>Land Uses</small>
+    <strong id="landUses">3</strong>
+  </div>
+</div>
+    <div class="panel">
+      <div class="panel-head">Plot directory <span id="visibleCount" class="pill">4 results</span></div>
+      <div class="filters">
+        <input id="search" type="search" placeholder="Search plot ID or name…" aria-label="Search plots">
+        <select id="landUse" aria-label="Filter by land use">
+          <option value="">All land uses</option><option>Residential</option><option>Commercial</option><option>Open Space</option>
+        </select>
+      </div>
+      <div class="plot-list" id="plotList"></div>
+    </div>
+  </section>
+  <section class="map-wrap">
+    <div class="map-top"><strong>Sample area · Kerala-style coordinates</strong><span>Illustrative geometry only</span></div>
+    <div id="map" aria-label="Interactive plot map"></div>
+    <div class="detail">
+  <h3>Selected plot details</h3>
+
+  <div class="detail-grid">
+
+    <div class="detail-item">
+      <small>Plot ID</small>
+      <strong id="dId">Select a plot</strong>
+    </div>
+
+    <div class="detail-item">
+      <small>Land Use</small>
+      <strong id="dUse">-</strong>
+    </div>
+
+    <div class="detail-item">
+      <small>Status</small>
+      <strong id="dStatus">-</strong>
+    </div>
+
+    <div class="detail-item">
+      <small>Area</small>
+      <strong id="dArea">-</strong>
+    </div>
+
+    <div class="detail-item">
+      <small>Owner Name</small>
+      <strong id="dOwner">-</strong>
+    </div>
+
+    <div class="detail-item">
+      <small>Survey Number</small>
+      <strong id="dSurvey">-</strong>
+    </div>
+
+    <div class="detail-item">
+      <small>Land Type</small>
+      <strong id="dLandType">-</strong>
+    </div>
+
+    <div class="detail-item">
+      <small>Village</small>
+      <strong id="dVillage">-</strong>
+    </div>
+
+    <div class="detail-item">
+      <small>District</small>
+      <strong id="dDistrict">-</strong>
+    </div>
+
+  </div>
+  <div class="nearby-section">
+    <h3>Nearby Plots</h3>
+    <p>Plots located near the selected plot</p>
+    <div id="nearbyPlots">
+        Select a plot to view nearby plots.
+    </div>
+</div>
+
+</div>
+    
+    </div>
+  </section>
+</main>
+<footer>
+  <strong>Project note:</strong> All plot boundaries and attributes are synthetic practice data and are not legal or surveyed parcel boundaries. This GitHub Pages demo loads a local GeoJSON file; it is not yet connected to a live PostgreSQL database. See README for the planned PostGIS integration.
+</footer>
+<script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = 'https://ckxwtlnmzrhprcyvvbzm.supabase.co';
+
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_nSqI5QR8nW5p_QOGz044AA_TPP4pPbU';
+
+const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY
+);
+  let map = null;
+  if (window.maplibregl) {
+    map = new maplibregl.Map({
+      container: 'map',
+      style: {
+  version: 8,
+  sources: {
+    osm: {
+      type: 'raster',
+      tiles: [
+        'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+      ],
+      tileSize: 256,
+      attribution: '© OpenStreetMap contributors'
+    }
+  },
+  layers: [
+    {
+      id: 'osm',
+      type: 'raster',
+      source: 'osm'
+    }
+  ]
+},
+      center: [76.001, 11.701],
+      zoom: 15.5
+    });
+    map.addControl(new maplibregl.NavigationControl(), 'top-right');
+  } else {
+    document.getElementById('map').innerHTML = '<div style="padding:24px;color:#69756f">Map library did not load. Check your internet connection and refresh. Plot details can still load below.</div>';
+  }
+  let allFeatures = [];
+  let selectedId = null;
+  const colors = ['#8ccdb0','#9db9ed','#f3c27a','#c4b1e8'];
+  const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  function visibleFeatures(){
+    const q = document.getElementById('search').value.trim().toLowerCase();
+    const use = document.getElementById('landUse').value;
+    return allFeatures.filter(f => {
+      const p=f.properties;
+      return (!q || (p.plot_id+' '+p.plot_name).toLowerCase().includes(q)) && (!use || p.land_use===use);
+    });
+  }
+  function calculateAreaM2(ring) {
+  const earthRadius = 6378137;
+  let area = 0;
+
+  for (let i = 0; i < ring.length - 1; i++) {
+    const [lon1, lat1] = ring[i];
+    const [lon2, lat2] = ring[i + 1];
+
+    const lat1Rad = lat1 * Math.PI / 180;
+    const lat2Rad = lat2 * Math.PI / 180;
+    const lonDiff = (lon2 - lon1) * Math.PI / 180;
+
+    area += lonDiff *
+      (2 + Math.sin(lat1Rad) + Math.sin(lat2Rad));
+  }
+
+  return Math.abs(area * earthRadius * earthRadius / 2);
+}
+async function loadPlotBuffer(plotId, distance = 100) {
+    try {
+        const { data, error } = await supabaseClient.rpc(
+            'get_plot_buffer',
+            {
+                p_plot_id: plotId,
+                p_distance: distance
+            }
+        );
+        console.log('Raw Buffer RPC response:', data, error);
+
+        if (error) throw error;
+
+        const bufferFeature =
+            typeof data === 'string' ? JSON.parse(data) : data;
+
+        map.getSource('plot-buffer').setData({
+            type: 'FeatureCollection',
+            features: bufferFeature ? [bufferFeature] : []
+        });
+
+        console.log('Buffer loaded:', bufferFeature);
+
+    } catch (error) {
+    console.error('Buffer loading error:', error);
+    alert(JSON.stringify(error, null, 2));
+}
+}
+  function selectPlot(id, fly = true) {
+  selectedId = id;
+
+  const f = allFeatures.find(
+    x => x.properties.plot_id === id
+  );
+
+  if (!f) return;
+
+  document.getElementById('dId').textContent =
+    f.properties.plot_id;
+
+  document.getElementById('dUse').textContent =
+    f.properties.land_use;
+
+  document.getElementById('dStatus').textContent =
+    f.properties.status;
+    // Display additional plot information
+document.getElementById('dOwner').textContent =
+  f.properties.owner_name || '-';
+
+document.getElementById('dSurvey').textContent =
+  f.properties.survey_number || '-';
+
+document.getElementById('dLandType').textContent =
+  f.properties.land_type || '-';
+
+document.getElementById('dVillage').textContent =
+  f.properties.village || '-';
+
+document.getElementById('dDistrict').textContent =
+  f.properties.district || '-';
+
+  // Calculate selected plot area
+  const areaM2 = calculateAreaM2(
+    f.geometry.coordinates[0]
+  );
+
+  const areaAcres = areaM2 / 4046.856;
+
+  document.getElementById('dArea').textContent =
+    areaM2.toFixed(2) + ' m² (' +
+    areaAcres.toFixed(4) + ' acres)';
+
+  document.querySelectorAll('.plot').forEach(el => {
+    el.classList.toggle(
+      'active',
+      el.dataset.id === id
+    );
+  });
+
+  if (fly && map) {
+    map.fitBounds(
+      boundsFor(f.geometry.coordinates[0]),
+      { padding: 90, maxZoom: 17, duration: 600 }
+    );
+  }
+
+  if (map && map.getLayer('plots-selected')) {
+    map.setFilter(
+      'plots-selected',
+      ['==', ['get', 'plot_id'], id]
+    );
+  }
+  loadNearbyPlots(id);
+  // Load 100 metre buffer for selected plot
+if (map && map.getSource('plot-buffer')) {
+    loadPlotBuffer(id, 100);
+}
+}
+async function loadNearbyPlots(plotId) {
+    const container = document.getElementById('nearbyPlots');
+
+    container.innerHTML = 'Loading nearby plots...';
+    console.log('Plot ID sent to Supabase:', plotId);
+
+    const { data, error } = await supabaseClient.rpc(
+        'get_nearby_plots',
+        { p_plot_id: plotId }
+    );
+    console.log('Nearby plots response:', { data, error });
+
+    if (error) {
+        console.error('Nearby plots error:', error);
+        container.innerHTML = 'Unable to load nearby plots.';
+        return;
+    }
+
+    if (!data || data.length === 0) {
+        container.innerHTML = 'No nearby plots found.';
+        return;
+    }
+
+    container.innerHTML = data.map(plot => `
+    <div class="nearby-item" data-plot-id="${plot.nearby_plot}" role="button" tabindex="0">
+        <strong>${plot.nearby_plot}</strong>
+        <span>${Number(plot.distance_meters).toFixed(2)} m away</span>
+    </div>
+`).join('');
+
+container.querySelectorAll('.nearby-item').forEach(item => {
+    const openPlot = () => selectPlot(item.dataset.plotId);
+
+    item.addEventListener('click', openPlot);
+
+    item.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            openPlot();
+        }
+    });
+});
+}
+  function boundsFor(ring){
+    let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+    ring.forEach(([x,y])=>{minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y)});
+    return [[minX,minY],[maxX,maxY]];
+  }
+  function renderList(){
+    const fs=visibleFeatures(), el=document.getElementById('plotList');
+    document.getElementById('visibleCount').textContent=fs.length+' result'+(fs.length===1?'':'s');
+    el.innerHTML=fs.map(f=>`<div class="plot ${selectedId===f.properties.plot_id?'active':''}" data-id="${escapeHtml(f.properties.plot_id)}" tabindex="0" role="button"><div class="plot-top"><span class="plot-id">${escapeHtml(f.properties.plot_id)} · ${escapeHtml(f.properties.plot_name)}</span><span class="pill">${escapeHtml(f.properties.status)}</span></div><small>${escapeHtml(f.properties.land_use)}</small></div>`).join('') || '<div class="plot"><small>No plots match your search.</small></div>';
+    el.querySelectorAll('.plot[data-id]').forEach(node=>{
+      const action=()=>selectPlot(node.dataset.id);
+      node.addEventListener('click',action);
+      node.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();action()}});
+    });
+  }
+ supabaseClient.rpc('get_plots_geojson').then(({ data, error }) => {
+    if (error) throw error;
+    return typeof data === 'string' ? JSON.parse(data) : data;
+}).then(data => {
+    allFeatures=data.features || [];
+    document.getElementById('total').textContent=allFeatures.length;
+    document.getElementById('verified').textContent=allFeatures.filter(f=>f.properties.status==='Verified').length;
+    document.getElementById('draft').textContent =
+  allFeatures.filter(f => f.properties.status === 'Draft').length;
+
+document.getElementById('landUses').textContent =
+  new Set(allFeatures.map(f => f.properties.land_use)).size;
+    renderList();
+    if (allFeatures.length) selectPlot(allFeatures[0].properties.plot_id,false);
+    if (!map) return;
+    function addPlotLayers() {
+  console.log('Map GeoJSON:', data);
+
+  map.addSource('plots', {
+    type: 'geojson',
+    data: data
+  });
+  // Buffer zone source
+map.addSource('plot-buffer', {
+    type: 'geojson',
+    data: {
+        type: 'FeatureCollection',
+        features: []
+    }
+});
+// Buffer fill layer
+map.addLayer({
+    id: 'plot-buffer-fill',
+    type: 'fill',
+    source: 'plot-buffer',
+    paint: {
+        'fill-color': '#f59e0b',
+        'fill-opacity': 0.20
+    }
+});
+
+// Buffer boundary
+map.addLayer({
+    id: 'plot-buffer-outline',
+    type: 'line',
+    source: 'plot-buffer',
+    paint: {
+        'line-color': '#f59e0b',
+        'line-width': 2,
+        'line-dasharray': [2, 2]
+    }
+});
+
+  map.addLayer({
+  id: 'plots-fill',
+  type: 'fill',
+  source: 'plots',
+  paint: {
+    'fill-color': '#8ccdb0',
+    'fill-opacity': 0.58
+  }
+});
+
+map.addLayer({
+  id: 'plots-outline',
+  type: 'line',
+  source: 'plots',
+  paint: {
+    'line-color': '#244b3b',
+    'line-width': 2
+  }
+});
+
+map.addLayer({
+  id: 'plots-selected',
+  type: 'line',
+  source: 'plots',
+  paint: {
+    'line-color': '#f05b42',
+    'line-width': 4
+  },
+  filter: ['==', ['get', 'plot_id'], '']
+});
+
+  map.on('click', 'plots-fill', e => {
+    const f = e.features && e.features[0];
+    if (f) selectPlot(f.properties.plot_id);
+  });
+
+  map.on('mouseenter', 'plots-fill', () => {
+    map.getCanvas().style.cursor = 'pointer';
+  });
+
+  map.on('mouseleave', 'plots-fill', () => {
+    map.getCanvas().style.cursor = '';
+  });
+
+  const b = allFeatures.reduce(
+    (acc, f) => {
+      const bb = boundsFor(f.geometry.coordinates[0]);
+      acc[0][0] = Math.min(acc[0][0], bb[0][0]);
+      acc[0][1] = Math.min(acc[0][1], bb[0][1]);
+      acc[1][0] = Math.max(acc[1][0], bb[1][0]);
+      acc[1][1] = Math.max(acc[1][1], bb[1][1]);
+      return acc;
+    },
+    [[Infinity, Infinity], [-Infinity, -Infinity]]
+  );
+
+  map.fitBounds(b, { padding: 70, maxZoom: 16 });
+}
+
+
+if (map.isStyleLoaded()) {
+  addPlotLayers();
+} else {
+  map.once('load', addPlotLayers);
+}
+  }).catch(err=>{document.getElementById('plotList').innerHTML='<div class="plot"><small>Could not load data/plots.geojson. Please open the correct project folder in Live Server.</small></div>';console.error(err)});
+  document.getElementById('search').addEventListener('input',renderList);
+  document.getElementById('landUse').addEventListener('change',renderList);
+</script>
+</body>
+</html>
+  
