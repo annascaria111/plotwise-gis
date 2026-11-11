@@ -1,56 +1,118 @@
-# PlotWise — GIS Plot Explorer
+# PlotWise — Smart Land Plot Explorer 🗺️
 
-An interview-ready starter project demonstrating polygon-based plot mapping, GeoJSON, interactive web mapping, and a PostgreSQL/PostGIS data model.
+An interactive GIS-based land plot exploration system built to visualize, manage, and analyze land parcel information using web mapping technologies.
 
-## Features
-- Interactive map powered by MapLibre GL JS
-- Synthetic GeoJSON plot polygons
-- Click a polygon or directory item to inspect plot attributes
-- Search plots by ID/name and filter by land use
-- Plot count and verification status summary
-- PostGIS schema with geometry validation and a GiST spatial index
+## 📌 Project Overview
 
-## Demo data warning
-The included plot boundaries and attributes are synthetic teaching data. They are not surveyed parcels, legal boundaries, or official cadastral records. Replace them with appropriately licensed and verified data before any real-world use.
+PlotWise is a web-based GIS application that allows users to explore land plots through an interactive map. Users can view plot boundaries, search and filter plots, inspect land information, calculate approximate plot areas, and explore nearby plots.
 
-## Run locally
-Because the app fetches a local GeoJSON file, serve the folder over HTTP instead of opening `index.html` directly.
+The project integrates MapLibre GL JS with Supabase and PostgreSQL/PostGIS.
 
-### Simple Python server
-If Python is installed:
-```bash
-python3 -m http.server 8000
+## ✨ Features
+
+- Interactive GIS map with plot boundary visualization
+- Plot directory with search functionality
+- Filter plots by land use
+- Select and highlight individual plots
+- View plot information and ownership attributes
+- Approximate area calculation in square meters and acres
+- Nearby plot discovery with distance information
+- Supabase database integration
+- GeoJSON-based spatial data handling
+
+## 🛠️ Technologies Used
+
+| Technology | Purpose |
+|---|---|
+| HTML | Application structure |
+| CSS | User interface design |
+| JavaScript | Application logic |
+| MapLibre GL JS | Interactive map visualization |
+| GeoJSON | Spatial data format |
+| Supabase | Backend services and database API |
+| PostgreSQL | Relational database |
+| PostGIS | Spatial data support |
+
+## 🗂️ Project Structure
+
+```text
+plotwise-gis/
+│
+├── data/
+│   └── plots.geojson
+│
+├── sql/
+│   └── schema.sql
+│
+├── index.html
+├── README.md
+└── .gitignore
 ```
-Run that command from this project folder, then open http://localhost:8000.
 
-## Publish on GitHub Pages
-1. Create a public GitHub repository named `plotwise-gis`.
-2. Upload `index.html`, `data/plots.geojson`, `sql/schema.sql`, and this README while preserving the folder structure.
-3. Open repository **Settings → Pages**.
-4. Choose **Deploy from a branch**, select `main` and `/ (root)`, then save.
-5. Wait for the Pages deployment to finish and open the published URL shown in Settings → Pages.
+## 🗺️ GIS Functionalities
 
-GitHub Pages hosts the static front end. This demo loads GeoJSON from the repository; it does not connect directly to PostgreSQL.
+- Displays polygon-based land parcels.
+- Uses GeoJSON FeatureCollections for spatial features.
+- Supports plot selection and map navigation.
+- Calculates approximate polygon area.
+- Retrieves nearby plot information through Supabase database functions.
 
-## PostgreSQL + PostGIS
-1. Create a PostgreSQL database.
-2. Enable PostGIS on that database.
-3. Run `sql/schema.sql`.
-4. Import `data/plots.geojson` into `public.plots` using QGIS or an appropriate GeoJSON import workflow, mapping `plot_id`, `plot_name`, `land_use`, `status`, and geometry.
-5. Run the example validity and area queries in `sql/schema.sql`.
+## 🗄️ Database Integration
 
-## Architecture
-- Front end: HTML, CSS, JavaScript, MapLibre GL JS
-- Data exchange: GeoJSON
-- Spatial database: PostgreSQL + PostGIS
-- Planned production extension: a backend API that reads PostGIS and serves validated GeoJSON to the map.
+PlotWise uses Supabase with PostgreSQL/PostGIS.
 
-## Security note
-Never put a PostgreSQL password or service-role key in browser JavaScript or a public repository. A production app should use a server-side API with least-privilege database access and appropriate authentication.
+Database functionality includes:
+- Land plot attributes
+- Spatial geometry storage
+- `get_plots_geojson()` function
+- `get_nearby_plots(text)` function
+- Plot information retrieval through database views
 
-## Interview talking points
-- GeoJSON represents each plot as a polygon with attributes.
-- MapLibre renders the polygons and supports selection interactions.
-- PostGIS stores spatial geometry and supports validity checks and spatial queries.
-- A GiST index improves many spatial query workloads.
-- GitHub Pages deploys the static demo; a backend API is needed for a live database connection.
+## 🚀 Getting Started
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/annascaria111/plotwise-gis.git
+```
+
+2. Open the project folder in VS Code.
+
+3. Configure your Supabase project URL and publishable API key in the application configuration.
+
+4. Ensure the required database tables, functions, views, and permissions are configured.
+
+5. Run `index.html` using VS Code Live Server.
+
+## 📊 Sample Dataset
+
+The current demonstration includes four sample land plots:
+
+- PW-001
+- PW-002
+- PW-003
+- PW-004
+
+**Note:** The current plot boundaries and property information are illustrative sample data, not verified cadastral or legal survey records.
+
+## 🔮 Future Enhancements
+
+- User authentication and role-based access
+- Advanced spatial analysis
+- Plot boundary editing
+- Improved reporting and analytics
+- Integration with verified land survey datasets
+
+## 👩‍💻 Developer
+
+**Anna Scaria**
+
+B.Tech Computer Science and Design Engineering Graduate (2026)
+
+GitHub: https://github.com/annascaria111
+
+LinkedIn: https://www.linkedin.com/in/anna-scaria-204a8a374/
+
+---
+
+*PlotWise — Explore Land. Understand Space. Make Better Decisions.*
