@@ -116,3 +116,6 @@ LinkedIn: https://www.linkedin.com/in/anna-scaria-204a8a374/
 ---
 
 *PlotWise — Explore Land. Understand Space. Make Better Decisions.*
+## Project Screenshot
+
+![PlotWise GIS Dashboard](screenshots/plotwise-dashboard.png)
