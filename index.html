@@ -353,24 +353,36 @@ const supabaseClient = window.supabase.createClient(
 }
 async function loadPlotBuffer(plotId, distance = 100) {
     try {
-        const { data, error } = await supabaseClient.rpc(
-            'get_plot_buffer',
-            {
-                p_plot_id: plotId,
-                p_distance: distance
-            }
-        );
+        
+const { data, error } = await supabaseClient.rpc(
+  'get_plot_buffer',
+  {
+    buffer_distance: distance,
+    selected_plot_id: plotId
+  }
+);
+
         console.log('Raw Buffer RPC response:', data, error);
 
         if (error) throw error;
 
-        const bufferFeature =
-            typeof data === 'string' ? JSON.parse(data) : data;
+       const bufferGeometry =
+  typeof data === 'string' ? JSON.parse(data) : data;
 
-        map.getSource('plot-buffer').setData({
-            type: 'FeatureCollection',
-            features: bufferFeature ? [bufferFeature] : []
-        });
+const bufferFeature = bufferGeometry
+  ? bufferGeometry.type === 'Feature'
+    ? bufferGeometry
+    : {
+        type: 'Feature',
+        properties: {},
+        geometry: bufferGeometry
+      }
+  : null;
+
+map.getSource('plot-buffer').setData({
+  type: 'FeatureCollection',
+  features: bufferFeature ? [bufferFeature] : []
+});
 
         console.log('Buffer loaded:', bufferFeature);
 
