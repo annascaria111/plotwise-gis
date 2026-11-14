@@ -644,6 +644,522 @@ if (map.isStyleLoaded()) {
   document.getElementById('search').addEventListener('input',renderList);
   document.getElementById('landUse').addEventListener('change',renderList);
 </script>
+
+<!-- PlotWise Admin Login -->
+<style>
+  #adminLoginBtn {
+    position: fixed;
+    right: 22px;
+    bottom: 22px;
+    z-index: 1000;
+    padding: 12px 20px;
+    border: 0;
+    border-radius: 9px;
+    background: #102442;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  #adminLoginPanel {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    background: rgba(0,0,0,.65);
+    align-items: center;
+    justify-content: center;
+  }
+
+  #adminLoginCard {
+    background: white;
+    color: #172b45;
+    width: min(360px, 90%);
+    padding: 25px;
+    border-radius: 14px;
+    box-shadow: 0 10px 40px #0003;
+  }
+
+  #adminLoginCard input {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0;
+    border: 1px solid #ccc;
+    border-radius: 7px;
+  }
+
+  #adminLoginCard button {
+    padding: 11px 16px;
+    border: 0;
+    border-radius: 7px;
+    cursor: pointer;
+    background: #087c58;
+    color: white;
+  }
+
+  #adminMessage {
+    font-size: 13px;
+    margin-top: 12px;
+  }
+</style>
+
+<button id="adminLoginBtn">Admin Login</button>
+
+<div id="adminLoginPanel">
+  <div id="adminLoginCard">
+    <h2>PlotWise Admin</h2>
+    <p>Sign in with your administrator account.</p>
+
+    <input id="adminEmail" type="email"
+      placeholder="Email address" autocomplete="username">
+
+    <input id="adminPassword" type="password"
+      placeholder="Password" autocomplete="current-password">
+
+    <button id="adminSignIn">Sign In</button>
+    <button id="adminClose" style="background:#64748b">Close</button>
+
+    <p id="adminMessage"></p>
+  </div>
+</div>
+
+<script>
+  const loginPanel = document.getElementById('adminLoginPanel');
+  const adminMessage = document.getElementById('adminMessage');
+
+  document.getElementById('adminLoginBtn').onclick = () => {
+    loginPanel.style.display = 'flex';
+  };
+
+  document.getElementById('adminClose').onclick = () => {
+    loginPanel.style.display = 'none';
+  };
+
+async function loadAdminPlots() {
+  const table = document.getElementById('adminPlotTable');
+
+  table.innerHTML = '<tr><td colspan="5">Loading plots...</td></tr>';
+
+  try {
+    const { data: plots, error } = await supabaseClient
+      .from('plots')
+      .select('plot_id, plot_name, land_use, status')
+      .order('plot_id');
+
+    if (error) throw error;
+
+    document.getElementById('adminTotal').textContent = plots.length;
+    document.getElementById('adminVerified').textContent =
+      plots.filter(p => p.status === 'Verified').length;
+    document.getElementById('adminDraft').textContent =
+      plots.filter(p => p.status === 'Draft').length;
+
+    table.innerHTML = '';
+
+    plots.forEach(plot => {
+      const row = document.createElement('tr');
+
+      [plot.plot_id, plot.plot_name, plot.land_use, plot.status]
+        .forEach(value => {
+          const cell = document.createElement('td');
+          cell.textContent = value || '-';
+          row.appendChild(cell);
+        });
+
+      const actionCell = document.createElement('td');
+
+const editBtn = document.createElement('button');
+editBtn.textContent = 'Edit';
+
+editBtn.onclick = () => {
+    document.getElementById('editPlotId').value = plot.plot_id;
+    document.getElementById('editPlotName').value = plot.plot_name || '';
+
+    const landUseSelect = document.getElementById('editLandUse');
+    const landUseOption = [...landUseSelect.options].find(
+        option => option.value.toLowerCase() ===
+        String(plot.land_use || '').toLowerCase()
+    );
+    landUseSelect.value = landUseOption
+        ? landUseOption.value
+        : 'Residential';
+
+    document.getElementById('editPlotStatus').value = plot.status;
+
+    document.getElementById('editPlotMessage').textContent = '';
+
+    document.getElementById('editPlotForm').style.display = 'block';
+
+    document.getElementById('editPlotForm').scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+    });
+};
+
+const deleteBtn = document.createElement('button');
+deleteBtn.textContent = 'Delete';
+deleteBtn.style.marginLeft = '6px';
+deleteBtn.style.backgroundColor = '#dc3545';
+deleteBtn.style.color = 'white';
+
+deleteBtn.onclick = async () => {
+    const confirmed = confirm(
+        `Are you sure you want to delete ${plot.plot_id}?`
+    );
+
+    if (!confirmed) return;
+
+    try {
+        const { error } = await supabaseClient
+            .from('plots')
+            .delete()
+            .eq('plot_id', plot.plot_id);
+
+        if (error) throw error;
+
+        alert('Plot deleted successfully!');
+
+        await loadAdminPlots();
+
+        // Refresh map data
+        const { data, error: refreshError } =
+            await supabaseClient.rpc('get_plots_geojson');
+
+        if (refreshError) throw refreshError;
+
+        const geoJSON = typeof data === 'string'
+            ? JSON.parse(data)
+            : data;
+
+        allFeatures = geoJSON.features || [];
+
+        const source = map.getSource('plots');
+        if (source) source.setData(geoJSON);
+
+        renderList();
+
+        document.getElementById('total').textContent = allFeatures.length;
+        document.getElementById('verified').textContent =
+            allFeatures.filter(f => f.properties.status === 'Verified').length;
+        document.getElementById('draft').textContent =
+            allFeatures.filter(f => f.properties.status === 'Draft').length;
+        document.getElementById('landUses').textContent =
+            new Set(allFeatures.map(f => f.properties.land_use)).size;
+
+    } catch (error) {
+        alert('Delete failed: ' + error.message);
+    }
+};
+
+actionCell.appendChild(deleteBtn);
+actionCell.appendChild(editBtn);
+row.appendChild(actionCell);
+
+      table.appendChild(row);
+    });
+
+  } catch (error) {
+    console.error('Admin dashboard error:', error);
+    table.innerHTML =
+      '<tr><td colspan="5">Could not load plots: ' +
+      error.message + '</td></tr>';
+  }
+}
+
+  document.getElementById('adminSignIn').onclick = async () => {
+    const email = document.getElementById('adminEmail').value.trim();
+    const password = document.getElementById('adminPassword').value;
+
+    adminMessage.textContent = 'Checking credentials...';
+
+    try {
+      const { data, error } =
+        await supabaseClient.auth.signInWithPassword({
+          email,
+          password
+        });
+
+      if (error) throw error;
+
+      const { data: roleData, error: roleError } =
+        await supabaseClient
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', data.user.id)
+          .single();
+
+      if (roleError || roleData?.role !== 'admin') {
+        await supabaseClient.auth.signOut();
+        throw new Error('This account does not have administrator access.');
+      }
+
+      adminMessage.textContent = 'Admin login successful!';
+
+loginPanel.style.display = 'none';
+document.getElementById('adminDashboard').style.display = 'block';
+
+document.getElementById('adminLoginBtn').textContent = 'Admin Dashboard';
+
+loadAdminPlots();
+
+    } catch (error) {
+      adminMessage.textContent = error.message;
+    }
+  };
+</script>
+
+<!-- PlotWise Admin Dashboard -->
+<div id="adminDashboard" style="display:none; padding:30px;">
+  <h2>PlotWise Admin Dashboard</h2>
+  <p>Manage land plots and their information.</p>
+
+  <div class="admin-stats">
+    <div>Total Plots: <strong id="adminTotal">0</strong></div>
+    <div>Verified: <strong id="adminVerified">0</strong></div>
+    <div>Draft: <strong id="adminDraft">0</strong></div>
+  </div>
+
+  <h3>Plot Management</h3>
+
+  <button id="addPlotBtn">Add New Plot</button>
+  <div id="addPlotForm" style="display:none; margin:20px 0; padding:20px; background:white; border:1px solid #ddd; border-radius:10px;">
+
+  <h3>Add New Plot</h3>
+
+  <input id="newPlotId" placeholder="Plot ID (e.g. PW-005)">
+
+  <input id="newPlotName" placeholder="Plot Name">
+
+  <select id="newLandUse">
+    <option value="Residential">Residential</option>
+    <option value="Commercial">Commercial</option>
+    <option value="Open Space">Open Space</option>
+  </select>
+
+  <select id="newPlotStatus">
+    <option value="Draft">Draft</option>
+    <option value="Verified">Verified</option>
+    <option value="Needs review">Needs review</option>
+  </select>
+
+  <textarea id="newPlotGeoJSON"
+    placeholder="Paste plot boundary GeoJSON here"
+    rows="6"></textarea>
+
+  <button id="saveNewPlotBtn">Save Plot</button>
+  <button id="cancelNewPlotBtn">Cancel</button>
+
+  <p id="addPlotMessage"></p>
+</div>
+
+<!-- Edit Plot Form -->
+<div id="editPlotForm" style="display:none; margin:20px 0; padding:20px; background:white; border:1px solid #ddd; border-radius:10px;">
+
+    <h3>Edit Plot Details</h3>
+
+    <label>Plot ID</label>
+    <input id="editPlotId" type="text" readonly>
+
+    <label>Plot Name</label>
+    <input id="editPlotName" type="text" placeholder="Plot Name">
+
+    <label>Land Use</label>
+    <select id="editLandUse">
+        <option value="Residential">Residential</option>
+        <option value="Commercial">Commercial</option>
+        <option value="Open Space">Open Space</option>
+    </select>
+
+    <label>Status</label>
+    <select id="editPlotStatus">
+        <option value="Draft">Draft</option>
+        <option value="Verified">Verified</option>
+        <option value="Needs review">Needs review</option>
+    </select>
+
+    <br><br>
+
+    <button id="saveEditPlotBtn">Update Plot</button>
+    <button id="cancelEditPlotBtn">Cancel</button>
+
+    <p id="editPlotMessage"></p>
+
+</div>
+
+  <table border="1" cellpadding="10" cellspacing="0">
+    <thead>
+      <tr>
+        <th>Plot ID</th>
+        <th>Plot Name</th>
+        <th>Land Use</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="adminPlotTable"></tbody>
+  </table>
+
+  <button id="adminLogoutBtn">Logout</button>
+</div>
+<script>
+document.getElementById('addPlotBtn').onclick = () => {
+  document.getElementById('addPlotForm').style.display = 'block';
+};
+
+document.getElementById('saveNewPlotBtn').onclick = async () => {
+  const message = document.getElementById('addPlotMessage');
+  message.textContent = 'Saving plot...';
+
+  try {
+    const plotId = document.getElementById('newPlotId').value.trim();
+    const plotName = document.getElementById('newPlotName').value.trim();
+    const landUse = document.getElementById('newLandUse').value;
+    const status = document.getElementById('newPlotStatus').value;
+    const geojson = JSON.parse(
+      document.getElementById('newPlotGeoJSON').value
+    );
+
+    if (!plotId || !plotName) {
+      throw new Error('Please enter Plot ID and Plot Name.');
+    }
+
+    const { error } = await supabaseClient.rpc('add_plot_from_geojson', {
+      p_plot_id: plotId,
+      p_plot_name: plotName,
+      p_land_use: landUse,
+      p_status: status,
+      p_geojson: geojson
+    });
+
+    if (error) throw error;
+
+    message.textContent = 'Plot saved successfully!';
+
+await loadAdminPlots();
+
+// Refresh map data from Supabase
+const { data: refreshedData, error: refreshError } =
+    await supabaseClient.rpc('get_plots_geojson');
+
+if (refreshError) throw refreshError;
+
+const refreshedGeoJSON = typeof refreshedData === 'string'
+    ? JSON.parse(refreshedData)
+    : refreshedData;
+
+allFeatures = refreshedGeoJSON.features || [];
+
+const plotsSource = map.getSource('plots');
+
+if (plotsSource) {
+    plotsSource.setData(refreshedGeoJSON);
+}
+
+// Refresh plot directory and statistics
+document.getElementById('total').textContent = allFeatures.length;
+document.getElementById('verified').textContent =
+    allFeatures.filter(f => f.properties.status === 'Verified').length;
+document.getElementById('draft').textContent =
+    allFeatures.filter(f => f.properties.status === 'Draft').length;
+
+document.getElementById('landUses').textContent =
+    new Set(allFeatures.map(f => f.properties.land_use)).size;
+
+renderList();
+
+  } catch (error) {
+    message.textContent = error.message;
+  }
+};
+document.getElementById('cancelNewPlotBtn').onclick = () => {
+  document.getElementById('addPlotForm').style.display = 'none';
+};
+
+// Update Plot
+document.getElementById('saveEditPlotBtn').onclick = async () => {
+    const plotId = document.getElementById('editPlotId').value;
+    const plotName = document.getElementById('editPlotName').value.trim();
+    const landUse = document.getElementById('editLandUse').value;
+    const status = document.getElementById('editPlotStatus').value;
+    const message = document.getElementById('editPlotMessage');
+
+    if (!plotName) {
+        message.textContent = 'Please enter a plot name.';
+        return;
+    }
+
+    message.textContent = 'Updating plot...';
+
+    try {
+        const { error } = await supabaseClient
+            .from('plots')
+            .update({
+                plot_name: plotName,
+                land_use: landUse,
+                status: status
+            })
+            .eq('plot_id', plotId);
+
+        if (error) throw error;
+
+        // Refresh admin table
+        await loadAdminPlots();
+
+        // Refresh map from Supabase
+        const { data, error: refreshError } =
+            await supabaseClient.rpc('get_plots_geojson');
+
+        if (refreshError) throw refreshError;
+
+        const geoJSON = typeof data === 'string'
+            ? JSON.parse(data)
+            : data;
+
+        allFeatures = geoJSON.features || [];
+
+        const source = map.getSource('plots');
+        if (source) source.setData(geoJSON);
+
+        renderList();
+
+        document.getElementById('total').textContent = allFeatures.length;
+        document.getElementById('verified').textContent =
+            allFeatures.filter(f => f.properties.status === 'Verified').length;
+        document.getElementById('draft').textContent =
+            allFeatures.filter(f => f.properties.status === 'Draft').length;
+        document.getElementById('landUses').textContent =
+            new Set(allFeatures.map(f => f.properties.land_use)).size;
+
+        document.getElementById('editPlotForm').style.display = 'none';
+
+        alert('Plot updated successfully!');
+
+    } catch (error) {
+        message.textContent = 'Update failed: ' + error.message;
+    }
+};
+
+// Cancel Edit
+document.getElementById('cancelEditPlotBtn').onclick = () => {
+    document.getElementById('editPlotForm').style.display = 'none';
+};
+
+document.getElementById('adminLogoutBtn').onclick = async () => {
+    const { error } = await supabaseClient.auth.signOut();
+
+    if (error) {
+        alert(error.message);
+        return;
+    }
+
+    document.getElementById('adminDashboard').style.display = 'none';
+    document.getElementById('adminLoginBtn').textContent = 'Admin Login';
+    document.getElementById('adminLoginPanel').style.display = 'none';
+
+    alert('Logged out successfully!');
+};
+</script>
 </body>
 </html>
   
