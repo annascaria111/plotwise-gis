@@ -263,13 +263,87 @@ header {
     </div>
 
   </div>
+
+<!-- Soil and Water Information -->
+<div class="soil-info-section">
+    <h3>🌱 Soil & Water Information</h3>
+
+    <div class="detail-grid">
+        <div class="detail-item">
+            <small>Soil Type</small>
+            <strong id="dSoilType">Not recorded</strong>
+        </div>
+
+        <div class="detail-item">
+            <small>Soil pH</small>
+            <strong id="dSoilPh">Not recorded</strong>
+        </div>
+
+        <div class="detail-item">
+            <small>Water Availability</small>
+            <strong id="dWaterAvailability">Not recorded</strong>
+        </div>
+
+        <div class="detail-item">
+            <small>Irrigation Source</small>
+            <strong id="dIrrigationSource">Not recorded</strong>
+        </div>
+
+        <div class="detail-item">
+            <small>Slope Level</small>
+            <strong id="dSlopeLevel">Not recorded</strong>
+        </div>
+
+        <div class="detail-item">
+            <small>Waterlogging Risk</small>
+            <strong id="dWaterloggingRisk">Not recorded</strong>
+        </div>
+    </div>
+</div>
+
   <div class="nearby-section">
     <h3>Nearby Plots</h3>
     <p>Plots located near the selected plot</p>
     <div id="nearbyPlots">
         Select a plot to view nearby plots.
     </div>
+
+<!-- Crop Suitability Assessment -->
+<div class="crop-assessment">
+  <h3>🌱 Crop Suitability Assessment</h3>
+  <p>Select a crop to assess its suitability for the selected plot.</p>
+
+  <label for="cropSelect">Choose Crop</label>
+  <select id="cropSelect">
+    <option value="">-- Select a Crop --</option>
+    <option value="vegetables">Vegetables</option>
+    <option value="banana">Banana</option>
+    <option value="ginger">Ginger</option>
+    <option value="paddy">Paddy</option>
+    <option value="coconut">Coconut</option>
+    <option value="pepper">Pepper</option>
+    <option value="coffee">Coffee</option>
+  </select>
+
+  <button id="assessCropBtn">Assess Suitability</button>
+
+<div id="cropAssessmentResult">
+    Select a plot on the map and choose a crop to begin.
 </div>
+
+<hr>
+
+<h3>Find Plots by Crop</h3>
+<p>Find plots based on the recorded land information.</p>
+
+<button id="findCropPlotsBtn">Find Plots for Selected Crop</button>
+
+<div id="cropPlotFinderResult">
+    Choose a crop and click Find Plots.
+</div>
+</div>
+
+</div></div>
 
 </div>
     
@@ -394,76 +468,7 @@ map.getSource('plot-buffer').setData({
     alert(JSON.stringify(error, null, 2));
 }
 }
-  function selectPlot(id, fly = true) {
-  selectedId = id;
-
-  const f = allFeatures.find(
-    x => x.properties.plot_id === id
-  );
-
-  if (!f) return;
-
-  document.getElementById('dId').textContent =
-    f.properties.plot_id;
-
-  document.getElementById('dUse').textContent =
-    f.properties.land_use;
-
-  document.getElementById('dStatus').textContent =
-    f.properties.status;
-    // Display additional plot information
-document.getElementById('dOwner').textContent =
-  f.properties.owner_name || '-';
-
-document.getElementById('dSurvey').textContent =
-  f.properties.survey_number || '-';
-
-document.getElementById('dLandType').textContent =
-  f.properties.land_type || '-';
-
-document.getElementById('dVillage').textContent =
-  f.properties.village || '-';
-
-document.getElementById('dDistrict').textContent =
-  f.properties.district || '-';
-
-  // Calculate selected plot area
-  const areaM2 = calculateAreaM2(
-    f.geometry.coordinates[0]
-  );
-
-  const areaAcres = areaM2 / 4046.856;
-
-  document.getElementById('dArea').textContent =
-    areaM2.toFixed(2) + ' m² (' +
-    areaAcres.toFixed(4) + ' acres)';
-
-  document.querySelectorAll('.plot').forEach(el => {
-    el.classList.toggle(
-      'active',
-      el.dataset.id === id
-    );
-  });
-
-  if (fly && map) {
-    map.fitBounds(
-      boundsFor(f.geometry.coordinates[0]),
-      { padding: 90, maxZoom: 17, duration: 600 }
-    );
-  }
-
-  if (map && map.getLayer('plots-selected')) {
-    map.setFilter(
-      'plots-selected',
-      ['==', ['get', 'plot_id'], id]
-    );
-  }
-  loadNearbyPlots(id);
-  // Load 100 metre buffer for selected plot
-if (map && map.getSource('plot-buffer')) {
-    loadPlotBuffer(id, 100);
-}
-}
+  
 async function loadNearbyPlots(plotId) {
     const container = document.getElementById('nearbyPlots');
 
@@ -507,6 +512,86 @@ container.querySelectorAll('.nearby-item').forEach(item => {
     });
 });
 }
+
+function selectPlot(plotId, zoomToPlot = true) {
+    const feature = allFeatures.find(
+        f => f.properties.plot_id === plotId
+    );
+
+    if (!feature) {
+        console.error('Plot not found:', plotId);
+        return;
+    }
+
+    selectedId = plotId;
+
+    // Update crop assessment when a plot is selected
+const cropResult = document.getElementById('cropAssessmentResult');
+const cropSelect = document.getElementById('cropSelect');
+
+cropSelect.value = '';
+
+cropResult.textContent = 'Selected plot: ' + plotId +
+    '. Choose a crop to assess its suitability.';
+    const p = feature.properties;
+
+    // Update selected plot details
+    document.getElementById('dId').textContent = p.plot_id || '-';
+    document.getElementById('dUse').textContent = p.land_use || '-';
+    document.getElementById('dStatus').textContent = p.status || '-';
+    document.getElementById('dOwner').textContent = p.owner_name || '-';
+    document.getElementById('dSurvey').textContent = p.survey_number || '-';
+    document.getElementById('dLandType').textContent = p.land_type || '-';
+    document.getElementById('dVillage').textContent = p.village || '-';
+    document.getElementById('dDistrict').textContent = p.district || '-';
+    // Update soil and water information
+document.getElementById('dSoilType').textContent = p.soil_type || '--';
+document.getElementById('dSoilPh').textContent = p.soil_ph ?? '--';
+document.getElementById('dWaterAvailability').textContent = p.water_availability || '--';
+document.getElementById('dIrrigationSource').textContent = p.irrigation_source || '--';
+document.getElementById('dSlopeLevel').textContent = p.slope_level || '--';
+document.getElementById('dWaterloggingRisk').textContent = p.waterlogging_risk || '--';
+
+    // Calculate and display plot area
+    let area = '-';
+
+    if (feature.geometry.type === 'Polygon') {
+        const ring = feature.geometry.coordinates[0];
+        const areaM2 = calculateAreaM2(ring);
+
+        area = areaM2 >= 4046.86
+            ? (areaM2 / 4046.86).toFixed(3) + ' acres'
+            : areaM2.toFixed(2) + ' m²';
+    }
+
+    document.getElementById('dArea').textContent = area;
+
+    // Highlight selected plot
+    if (map.getLayer('plots-selected')) {
+        map.setFilter('plots-selected', [
+            '==',
+            ['get', 'plot_id'],
+            plotId
+        ]);
+    }
+
+    // Zoom to selected plot
+    if (zoomToPlot && feature.geometry.type === 'Polygon') {
+        const ring = feature.geometry.coordinates[0];
+        map.fitBounds(boundsFor(ring), {
+            padding: 70,
+            maxZoom: 17
+        });
+    }
+
+    // Refresh nearby plots and buffer
+    loadNearbyPlots(plotId);
+    loadPlotBuffer(plotId, 100);
+
+    // Refresh directory highlighting
+    renderList();
+}
+
   function boundsFor(ring){
     let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
     ring.forEach(([x,y])=>{minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y)});
@@ -744,7 +829,7 @@ async function loadAdminPlots() {
   try {
     const { data: plots, error } = await supabaseClient
       .from('plots')
-      .select('plot_id, plot_name, land_use, status')
+      .select('plot_id, plot_name, land_use, status, soil_type, soil_ph, water_availability, irrigation_source, slope_level, waterlogging_risk')
       .order('plot_id');
 
     if (error) throw error;
@@ -785,7 +870,13 @@ editBtn.onclick = () => {
         ? landUseOption.value
         : 'Residential';
 
-    document.getElementById('editPlotStatus').value = plot.status;
+    document.getElementById('editSoilType').value = plot.soil_type || '';
+document.getElementById('editSoilPh').value = plot.soil_ph ?? '';
+document.getElementById('editWaterAvailability').value = plot.water_availability || '';
+document.getElementById('editIrrigationSource').value = plot.irrigation_source || '';
+document.getElementById('editSlopeLevel').value = plot.slope_level || '';
+document.getElementById('editWaterloggingRisk').value = plot.waterlogging_risk || '';
+document.getElementById('editPlotStatus').value = plot.status;
 
     document.getElementById('editPlotMessage').textContent = '';
 
@@ -923,18 +1014,21 @@ loadAdminPlots();
   <h3>Plot Management</h3>
 
   <button id="addPlotBtn">Add New Plot</button>
-  <div id="addPlotForm" style="display:none; margin:20px 0; padding:20px; background:white; border:1px solid #ddd; border-radius:10px;">
+  
+<div id="addPlotForm" style="display:none; margin:20px 0; padding:20px; background:white; border:1px solid #ddd; border-radius:10px;">
 
   <h3>Add New Plot</h3>
 
-  <input id="newPlotId" placeholder="Plot ID (e.g. PW-005)">
+  <h4>Basic Information</h4>
 
+  <input id="newPlotId" placeholder="Plot ID (e.g. PW-005)">
   <input id="newPlotName" placeholder="Plot Name">
 
   <select id="newLandUse">
     <option value="Residential">Residential</option>
     <option value="Commercial">Commercial</option>
     <option value="Open Space">Open Space</option>
+    <option value="Agricultural">Agricultural</option>
   </select>
 
   <select id="newPlotStatus">
@@ -942,6 +1036,69 @@ loadAdminPlots();
     <option value="Verified">Verified</option>
     <option value="Needs review">Needs review</option>
   </select>
+
+  <h4>Agricultural Information</h4>
+
+  <label>Soil Type</label>
+  <select id="newSoilType">
+    <option value="">Not recorded</option>
+    <option value="Laterite">Laterite</option>
+    <option value="Alluvial">Alluvial</option>
+    <option value="Clay">Clay</option>
+    <option value="Sandy">Sandy</option>
+    <option value="Loamy">Loamy</option>
+    <option value="Black Soil">Black Soil</option>
+    <option value="Other">Other</option>
+  </select>
+
+  <label>Soil pH (optional)</label>
+  <input id="newSoilPH" type="number" min="0" max="14" step="0.1" placeholder="e.g. 6.5">
+
+  <label>Water Availability</label>
+  <select id="newWaterAvailability">
+    <option value="">Not recorded</option>
+    <option value="High">High</option>
+    <option value="Moderate">Moderate</option>
+    <option value="Low">Low</option>
+  </select>
+
+  <label>Irrigation Source</label>
+  <select id="newIrrigationSource">
+    <option value="">Not recorded</option>
+    <option value="Rain-fed">Rain-fed</option>
+    <option value="Well">Well</option>
+    <option value="Borewell">Borewell</option>
+    <option value="Canal">Canal</option>
+    <option value="River">River</option>
+    <option value="Other">Other</option>
+  </select>
+
+  <label>Slope Level</label>
+  <select id="newSlopeLevel">
+    <option value="">Not recorded</option>
+    <option value="Flat">Flat</option>
+    <option value="Gentle">Gentle</option>
+    <option value="Moderate">Moderate</option>
+    <option value="Steep">Steep</option>
+  </select>
+
+  <label>Waterlogging Risk</label>
+  <select id="newWaterloggingRisk">
+    <option value="">Not recorded</option>
+    <option value="Low">Low</option>
+    <option value="Medium">Medium</option>
+    <option value="High">High</option>
+  </select>
+
+  <label>Farming Status</label>
+  <select id="newFarmingStatus">
+    <option value="">Not recorded</option>
+    <option value="Currently cultivated">Currently cultivated</option>
+    <option value="Fallow land">Fallow land</option>
+    <option value="Unused">Unused</option>
+  </select>
+
+  <h4>Plot Boundary</h4>
 
   <textarea id="newPlotGeoJSON"
     placeholder="Paste plot boundary GeoJSON here"
@@ -952,6 +1109,7 @@ loadAdminPlots();
 
   <p id="addPlotMessage"></p>
 </div>
+
 
 <!-- Edit Plot Form -->
 <div id="editPlotForm" style="display:none; margin:20px 0; padding:20px; background:white; border:1px solid #ddd; border-radius:10px;">
@@ -978,7 +1136,40 @@ loadAdminPlots();
         <option value="Needs review">Needs review</option>
     </select>
 
-    <br><br>
+   
+<label>Soil Type</label>
+<input id="editSoilType" type="text" placeholder="e.g. Clay, Loamy, Sandy">
+
+<label>Soil pH</label>
+<input id="editSoilPh" type="number" step="0.1" min="0" max="14" placeholder="e.g. 6.5">
+
+<label>Water Availability</label>
+<select id="editWaterAvailability">
+    <option value="">Select</option>
+    <option value="Low">Low</option>
+    <option value="Moderate">Moderate</option>
+    <option value="High">High</option>
+</select>
+
+<label>Irrigation Source</label>
+<input id="editIrrigationSource" type="text" placeholder="e.g. Well, Borewell, Canal">
+
+<label>Slope Level</label>
+<select id="editSlopeLevel">
+    <option value="">Select</option>
+    <option value="Flat">Flat</option>
+    <option value="Gentle">Gentle</option>
+    <option value="Steep">Steep</option>
+</select>
+
+<label>Waterlogging Risk</label>
+<select id="editWaterloggingRisk">
+    <option value="">Select</option>
+    <option value="Low">Low</option>
+    <option value="Medium">Medium</option>
+    <option value="High">High</option>
+</select>
+ <br><br>
 
     <button id="saveEditPlotBtn">Update Plot</button>
     <button id="cancelEditPlotBtn">Cancel</button>
@@ -1024,13 +1215,25 @@ document.getElementById('saveNewPlotBtn').onclick = async () => {
       throw new Error('Please enter Plot ID and Plot Name.');
     }
 
-    const { error } = await supabaseClient.rpc('add_plot_from_geojson', {
-      p_plot_id: plotId,
-      p_plot_name: plotName,
-      p_land_use: landUse,
-      p_status: status,
-      p_geojson: geojson
-    });
+   
+const { error } = await supabaseClient.rpc('add_plot_from_geojson', {
+  p_plot_id: plotId,
+  p_plot_name: plotName,
+  p_land_use: landUse,
+  p_status: status,
+  p_geojson: geojson,
+
+  p_soil_type: document.getElementById('newSoilType').value,
+  p_soil_ph: document.getElementById('newSoilPH').value
+    ? Number(document.getElementById('newSoilPH').value)
+    : null,
+  p_water_availability: document.getElementById('newWaterAvailability').value,
+  p_irrigation_source: document.getElementById('newIrrigationSource').value,
+  p_slope_level: document.getElementById('newSlopeLevel').value,
+  p_waterlogging_risk: document.getElementById('newWaterloggingRisk').value,
+  p_farming_status: document.getElementById('newFarmingStatus').value
+});
+
 
     if (error) throw error;
 
@@ -1095,10 +1298,18 @@ document.getElementById('saveEditPlotBtn').onclick = async () => {
         const { error } = await supabaseClient
             .from('plots')
             .update({
-                plot_name: plotName,
-                land_use: landUse,
-                status: status
-            })
+    plot_name: plotName,
+    land_use: landUse,
+    status: status,
+    soil_type: document.getElementById('editSoilType').value,
+    soil_ph: document.getElementById('editSoilPh').value
+        ? Number(document.getElementById('editSoilPh').value)
+        : null,
+    water_availability: document.getElementById('editWaterAvailability').value,
+    irrigation_source: document.getElementById('editIrrigationSource').value,
+    slope_level: document.getElementById('editSlopeLevel').value,
+    waterlogging_risk: document.getElementById('editWaterloggingRisk').value
+})
             .eq('plot_id', plotId);
 
         if (error) throw error;
@@ -1159,6 +1370,263 @@ document.getElementById('adminLogoutBtn').onclick = async () => {
 
     alert('Logged out successfully!');
 };
+
+document.getElementById('assessCropBtn').addEventListener('click', () => {
+    const result = document.getElementById('cropAssessmentResult');
+    const crop = document.getElementById('cropSelect').value;
+
+    if (!selectedId) {
+        result.textContent = 'Please select a plot on the map first.';
+        return;
+    }
+
+    if (!crop) {
+        result.textContent = 'Please choose a crop first.';
+        return;
+    }
+
+    const feature = allFeatures.find(
+        f => f.properties.plot_id === selectedId
+    );
+
+    if (!feature) {
+        result.textContent = 'Selected plot information could not be found.';
+        return;
+    }
+
+    const p = feature.properties;
+
+    const soil = String(p.soil_type || '').toLowerCase();
+    const water = String(p.water_availability || '').toLowerCase();
+    const waterlogging = String(p.waterlogging_risk || '').toLowerCase();
+    const ph = Number(p.soil_ph);
+
+    const indicators = [];
+    const missing = [];
+
+    function check(field, value, message) {
+        if (value === null || value === undefined || value === '') {
+            missing.push(field);
+        } else {
+            indicators.push(message);
+        }
+    }
+
+    if (crop === 'banana') {
+        check('Water availability', p.water_availability,
+            water === 'high' || water === 'moderate'
+                ? 'Recorded water availability may support banana cultivation.'
+                : 'Recorded water availability may need attention.');
+
+        check('Waterlogging risk', p.waterlogging_risk,
+            waterlogging === 'low' || waterlogging === 'none'
+                ? 'Recorded waterlogging risk is low.'
+                : 'Waterlogging risk may require attention.');
+    }
+
+    else if (crop === 'paddy') {
+        check('Soil pH', p.soil_ph,
+            ph >= 5 && ph <= 8
+                ? 'Recorded soil pH is within the referenced 5–8 range.'
+                : 'Recorded soil pH is outside the referenced 5–8 range.');
+
+        check('Water availability', p.water_availability,
+            water === 'high' || water === 'moderate'
+                ? 'Water availability is recorded as ' + water + '.'
+                : 'Water availability may need attention.');
+    }
+
+    else if (crop === 'ginger' || crop === 'pepper') {
+        check('Waterlogging risk', p.waterlogging_risk,
+            waterlogging === 'low' || waterlogging === 'none'
+                ? 'Recorded waterlogging risk is low.'
+                : 'Waterlogging risk may be unsuitable; good drainage is important.');
+
+        check('Soil type', p.soil_type,
+            'Recorded soil type: ' + soil + '. A detailed drainage assessment is still needed.');
+    }
+
+    else if (crop === 'coconut') {
+        check('Soil pH', p.soil_ph,
+            ph >= 5 && ph <= 8
+                ? 'Recorded soil pH is within the referenced 5–8 range.'
+                : 'Recorded soil pH is outside the referenced 5–8 range.');
+
+        check('Waterlogging risk', p.waterlogging_risk,
+            waterlogging === 'low' || waterlogging === 'none'
+                ? 'Recorded waterlogging risk is low.'
+                : 'Waterlogging risk may require attention.');
+    }
+
+    else if (crop === 'coffee') {
+        missing.push('Altitude and local climate information');
+        indicators.push('Soil and water information alone cannot establish coffee suitability.');
+    }
+
+    else if (crop === 'vegetables') {
+        missing.push('Specific vegetable crop');
+        indicators.push('Different vegetables have different growing requirements.');
+    }
+
+   const status = missing.length
+    ? 'Insufficient data for a complete assessment'
+    : 'Available data reviewed — check the indicators below';
+
+    result.innerHTML = `
+        <h3>Crop Assessment: ${crop}</h3>
+        <p><strong>Selected Plot:</strong> ${p.plot_id}</p>
+        <h4>${status}</h4>
+        <h4>Assessment indicators</h4>
+        <ul>${indicators.map(item => `<li>${item}</li>`).join('')}</ul>
+        <h4>Missing information</h4>
+        <p>${missing.length ? missing.join(', ') : 'No missing fields for these initial checks.'}</p>
+        <p><strong>Note:</strong> This is a preliminary rule-based screening,
+        not a certified crop recommendation or yield prediction.
+        Field testing and local agricultural advice are still necessary.</p>
+    `;
+});
+
+document.getElementById('findCropPlotsBtn').addEventListener('click', () => {
+    const crop = document.getElementById('cropSelect').value;
+    const output = document.getElementById('cropPlotFinderResult');
+
+    if (!crop) {
+        output.textContent = 'Please choose a crop first.';
+        return;
+    }
+
+    const matchingPlots = [];
+    const attentionPlots = [];
+const insufficientPlots = [];
+
+    allFeatures.forEach(feature => {
+        const p = feature.properties;
+
+        const soil = String(p.soil_type || '').toLowerCase();
+        const water = String(p.water_availability || '').toLowerCase();
+        const waterlogging = String(p.waterlogging_risk || '').toLowerCase();
+        const ph = Number(p.soil_ph);
+
+        let checks = [];
+        let missing = [];
+
+        function checkField(name, value, passed, message) {
+            if (value === null || value === undefined || value === '') {
+                missing.push(name);
+            } else {
+                checks.push({ passed, message });
+            }
+        }
+
+        if (crop === 'banana') {
+            checkField('Water availability', p.water_availability,
+                water === 'high' || water === 'moderate',
+                'Water availability');
+
+            checkField('Waterlogging risk', p.waterlogging_risk,
+                waterlogging === 'low' || waterlogging === 'none',
+                'Waterlogging risk');
+        } else if (crop === 'paddy') {
+            checkField('Soil pH', p.soil_ph,
+                Number.isFinite(ph) && ph >= 5 && ph <= 8,
+                'Soil pH');
+
+            checkField('Water availability', p.water_availability,
+                water === 'high' || water === 'moderate',
+                'Water availability');
+        } else if (crop === 'ginger' || crop === 'pepper') {
+            checkField('Waterlogging risk', p.waterlogging_risk,
+                waterlogging === 'low' || waterlogging === 'none',
+                'Waterlogging risk');
+
+            checkField('Soil type', p.soil_type,
+                Boolean(soil),
+                'Soil type');
+        } else if (crop === 'coconut') {
+            checkField('Soil pH', p.soil_ph,
+                Number.isFinite(ph) && ph >= 5 && ph <= 8,
+                'Soil pH');
+
+            checkField('Waterlogging risk', p.waterlogging_risk,
+                waterlogging === 'low' || waterlogging === 'none',
+                'Waterlogging risk');
+        } else {
+            missing.push(
+                crop === 'coffee'
+                    ? 'Altitude and local climate information'
+                    : 'Specific vegetable and its growing requirements'
+            );
+        }
+
+       const failedChecks = checks
+    .filter(check => !check.passed)
+    .map(check => check.message);
+
+const failed = failedChecks.length > 0;
+
+const plotInfo = {
+    id: p.plot_id,
+    name: p.plot_name || p.plot_id,
+    missing,
+    failed,
+    failedChecks
+};
+
+if (missing.length > 0) {
+    insufficientPlots.push(plotInfo);
+} else if (failed) {
+    attentionPlots.push(plotInfo);
+} else if (checks.length > 0) {
+    matchingPlots.push(plotInfo);
+}
+});
+const reviewPlots = [...attentionPlots, ...insufficientPlots];
+
+    output.innerHTML = `
+        <h4>Crop search: ${crop}</h4>
+        <h4>Plots matching recorded checks: ${matchingPlots.length}</h4>
+        ${matchingPlots.length
+            ? matchingPlots.map(plot =>
+                `<button class="crop-result-plot" data-plot-id="${plot.id}">
+                    ${plot.id} — ${plot.name}
+                </button>`
+              ).join('')
+            : '<p>No plots passed all available checks.</p>'
+        }
+
+       <h4>Plots needing attention: ${attentionPlots.length}</h4>
+${attentionPlots.length
+  ? attentionPlots.map(plot =>
+      `<p>
+        <strong>${plot.id}</strong> —
+        ${plot.failedChecks.join(', ')}
+      </p>`
+    ).join('')
+  : '<p>No plots currently need attention.</p>'
+}
+
+<h4>Plots with insufficient data: ${insufficientPlots.length}</h4>
+${insufficientPlots.length
+  ? insufficientPlots.map(plot =>
+      `<p>
+        <strong>${plot.id}</strong> —
+        Missing information: ${plot.missing.join(', ')}
+      </p>`
+    ).join('')
+  : '<p>No plots have missing information.</p>'
+}
+
+        <p><strong>Note:</strong> These are preliminary rule-based
+        screening results, not certified crop recommendations.</p>
+    `;
+
+    output.querySelectorAll('.crop-result-plot').forEach(button => {
+        button.addEventListener('click', () => {
+            selectPlot(button.dataset.plotId);
+        });
+    });
+});
+
 </script>
 </body>
 </html>
